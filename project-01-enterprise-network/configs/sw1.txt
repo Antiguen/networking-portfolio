@@ -1,13 +1,13 @@
 Building configuration...
 
-Current configuration : 1409 bytes
+Current configuration : 1446 bytes
 !
 version 15.0
 no service timestamps log datetime msec
 no service timestamps debug datetime msec
 no service password-encryption
 !
-hostname Switch
+hostname SW1
 !
 !
 !
@@ -78,6 +78,7 @@ interface FastEthernet0/23
 interface FastEthernet0/24
 !
 interface GigabitEthernet0/1
+ switchport trunk allowed vlan 10,20,30
  switchport mode trunk
 !
 interface GigabitEthernet0/2
