@@ -66,20 +66,7 @@ Screenshots:
 | DHCP on a client | ![dhcp](screenshots/dhcp-pc0.png) |
 | Routing table with default route | ![routes](screenshots/route-table.png) |
 | Ping to 8.8.8.8 | ![ping](screenshots/ping-8888-success.png) |
-| NAT translations | ![nat](screenshots/nat-translations.png) |
-| NAT statistics | ![nat stats](screenshots/nat-statistics.png) |
-
-## What went wrong
-
-<!--
-WRITE THIS SECTION YOURSELF, in your own words. Aim for 5 to 8 sentences, covering:
-1. What you saw (the symptom).
-2. What you checked and in what order.
-3. The cause.
-4. The fix, with the commands you used.
-5. How you confirmed it was fixed.
-Delete this comment when you're done.
--->
+| NAT translations and statistics | ![nat](screenshots/nat-translations-&-nat-statistics.png) |
 
 ## Known limitations
 
