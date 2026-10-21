@@ -1,104 +1,97 @@
-# Enterprise Network Design with VLANs, DHCP, and NAT  
+# Project 1: Small Enterprise Network (VLANs, Inter-VLAN Routing, DHCP, PAT)
+
 **Tool:** Cisco Packet Tracer
 
-## 📌 Overview
-This project demonstrates the design and configuration of a small enterprise network using Cisco Packet Tracer. The network is segmented using VLANs, supports inter-VLAN communication, assigns IP addresses dynamically using DHCP, and provides internet access to internal users using Network Address Translation (NAT).
+## Overview
 
----
+A small office network with three departments (HR, IT, Finance), each in its own VLAN. One router connects the VLANs using router-on-a-stick, hands out addresses by DHCP, and translates internal addresses to a single public address (PAT) to reach an external network. A second router plays the role of the ISP, with a loopback address (8.8.8.8) standing in for a server on the internet.
 
-## 📂 Packet Tracer File
-The complete Cisco Packet Tracer (.pkt) file is included in this repository and contains all configurations used in this project. Reviewers can open the file to explore the network design and CLI configurations in detail.
+## Topology
 
----
+![Network topology](topology.png)
 
-## 🎯 Project Objectives
-- Design a multi-VLAN enterprise network
-- Enable communication between different VLANs
-- Configure DHCP for automatic IP address allocation
-- Implement NAT (PAT) to allow private networks to access external networks
-- Verify connectivity and troubleshoot network issues
+## Addressing table
 
----
+| Device | Interface | Address | Role |
+|---|---|---|---|
+| R1 | Gi0/1 | none | Trunk to SW1 |
+| R1 | Gi0/1.10 | 192.168.10.1/24 | HR gateway (VLAN 10) |
+| R1 | Gi0/1.20 | 192.168.20.1/24 | IT gateway (VLAN 20) |
+| R1 | Gi0/1.30 | 192.168.30.1/24 | Finance gateway (VLAN 30) |
+| R1 | Gi0/2 | 200.1.1.2/24 | NAT outside, link to ISP |
+| ISP | Gi0/0 | 200.1.1.1/24 | Link to R1 |
+| ISP | Loopback0 | 8.8.8.8/32 | Simulated internet server |
+| SW1 | Gi0/1 | none | Trunk to R1 (VLANs 10, 20, 30) |
+| SW1 | Fa0/1-2 | none | Access, VLAN 10 (HR) |
+| SW1 | Fa0/3-4 | none | Access, VLAN 20 (IT) |
+| SW1 | Fa0/5-6 | none | Access, VLAN 30 (Finance) |
 
-## 🧱 Network Topology
-The network consists of:
-- Multiple PCs connected to a Layer 2 switch
-- VLAN-based segmentation
-- A main router configured with subinterfaces (router-on-a-stick)
-- An ISP router to simulate external connectivity
+| VLAN | Name | Subnet | DHCP range |
+|---|---|---|---|
+| 10 | HR | 192.168.10.0/24 | .10 - .254 |
+| 20 | IT | 192.168.20.0/24 | .10 - .254 |
+| 30 | Finance | 192.168.30.0/24 | .10 - .254 |
 
----
+PCs get their addresses from R1's DHCP pools. Addresses .1 to .9 in each subnet are excluded so they stay free for infrastructure.
 
-## 🧱 Network Components
+## What was configured
 
-- Cisco Router (Main Router)
+- **VLANs and trunk (SW1):** VLANs 10, 20, and 30 with access ports for each department. Gi0/1 is an 802.1Q trunk to R1, restricted to VLANs 10, 20, and 30.
+- **Inter-VLAN routing (R1):** router-on-a-stick, with one subinterface per VLAN using `encapsulation dot1Q`.
+- **DHCP (R1):** one pool per VLAN, each handing out the subinterface address as the default gateway.
+- **PAT (R1):** `ip nat inside` on the three subinterfaces, `ip nat outside` on Gi0/2, and an overload rule using ACL 1 to match the three internal subnets.
+- **Default route (R1):** `ip route 0.0.0.0 0.0.0.0 200.1.1.1`, so traffic to destinations beyond the ISP link has somewhere to go.
 
-- Cisco Switch (Layer 2)
+Full device configs are in [`configs/`](configs/). The Packet Tracer file is [`project-01.pkt`](project-01.pkt).
 
-- ISP Router (Simulation)
+## How to verify
 
-- Multiple PCs in different VLANs
+| Check | Command or action | Expected result |
+|---|---|---|
+| VLANs exist and ports are assigned | `show vlan brief` (SW1) | HR, IT, Finance with the right ports |
+| Trunk is up | `show interfaces trunk` (SW1) | Gi0/1 trunking, VLANs 10, 20, 30 allowed |
+| Subinterfaces are up | `show ip interface brief` (R1) | Gi0/1.10, .20, .30 up/up |
+| DHCP works | `ipconfig` on a PC | Address in 192.168.x.10+, correct gateway |
+| Inter-VLAN routing works | Ping a PC in another VLAN | Replies received |
+| Default route is present | `show ip route` (R1) | `S*` route to 0.0.0.0/0 via 200.1.1.1 |
+| Internet reachability | `ping 8.8.8.8` from a PC | Replies received |
+| PAT is translating | `show ip nat translations` (R1), run right after a ping | Inside local 192.168.x.x mapped to inside global 200.1.1.2 |
 
-## 🔧 Technologies & Concepts Used
-- VLANs and VLAN Trunking (802.1Q)
-- Router-on-a-Stick (Inter-VLAN Routing)
-- DHCP Configuration
-- NAT (PAT / Overload)
-- Static Routing
-- Cisco IOS Command Line Interface (CLI)
+Screenshots:
 
----
+| Evidence | File |
+|---|---|
+| VLANs on SW1 | ![vlans](screenshots/vlans.png) |
+| Router subinterfaces | ![subinterfaces](screenshots/router-subinterfaces.png) |
+| DHCP on a client | ![dhcp](screenshots/dhcp-pc0.png) |
+| Routing table with default route | ![routes](screenshots/route-table.png) |
+| Ping to 8.8.8.8 | ![ping](screenshots/ping-8888-success.png) |
+| NAT translations | ![nat](screenshots/nat-translations.png) |
+| NAT statistics | ![nat stats](screenshots/nat-statistics.png) |
 
-## ⚙️ Configuration Details
+## What went wrong
 
-### VLAN Configuration
-Three VLANs were configured on the switch to segment the network:
-- VLAN 10 – Users  
-- VLAN 20 – Admin  
-- VLAN 30 – Servers  
+<!--
+WRITE THIS SECTION YOURSELF, in your own words. Aim for 5 to 8 sentences, covering:
+1. What you saw (the symptom).
+2. What you checked and in what order.
+3. The cause.
+4. The fix, with the commands you used.
+5. How you confirmed it was fixed.
+Delete this comment when you're done.
+-->
 
+## Known limitations
 
----
+- The native VLAN is still VLAN 1, and unused switch ports are not shut down or moved to an unused VLAN.
+- No device hardening: no SSH, no enable secret, no password encryption.
+- DHCP pools do not hand out a DNS server.
+- Single router and single switch, so there is no redundancy.
+- 8.8.8.8 is a loopback on the ISP router, not the real internet.
 
-### Inter-VLAN Routing
-Router subinterfaces were created for each VLAN, enabling communication between VLANs.
+## Files
 
-
----
-
-### DHCP Configuration
-The router was configured as a DHCP server to automatically assign IP addresses to devices in each VLAN.
-
-
----
-
-### NAT Configuration
-NAT overload (PAT) was configured on the router, allowing internal private IP addresses to access an external network through a single public IP address.
-
-
----
-
-## ✅ Testing & Verification
-- Successful communication between VLANs
-- PCs successfully receive IP addresses via DHCP
-- Internal hosts can access the external network through NAT
-- Connectivity verified using ICMP (ping)
-
-
----
-
-## 🧠 Key Learning Outcomes
-- Understanding enterprise network segmentation using VLANs
-- Practical experience with router-on-a-stick design
-- Hands-on DHCP and NAT configuration
-- Improved troubleshooting skills in a simulated network environment
-
----
-
-## 🚀 Future Improvements
-- Implement Access Control Lists (ACLs) for security
-- Configure dynamic routing protocols (e.g., OSPF)
-- Add firewall and security policies
-
----
-
+- `project-01.pkt`: Packet Tracer file with all configurations
+- `topology.png`: network diagram
+- `configs/`: exported device configs and `show` command output
+- `screenshots/`: verification evidence
