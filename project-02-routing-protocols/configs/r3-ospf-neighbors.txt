@@ -1,0 +1,2 @@
+Neighbor ID     Pri   State           Dead Time   Address         Interface
+192.168.2.1       1   FULL/BDR        00:00:37    10.0.23.1       GigabitEthernet0/0
